@@ -4,11 +4,11 @@ namespace App;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Luin extends Model
+class Reserve extends Model
 {
-    protected $table ='member';
+    protected $table ='reserve';
     // public $timestamps = false;
     protected $fillable = [
-        'name','email','telephone','cellphone','sex'
+        'tentid','memberid','quality','price','startdate','enddate'
     ];    
 }

@@ -1,4 +1,4 @@
-<template>  
+<template>
   <div class="container">
   <el-steps :active="active" align-center style="margin-top: 50px;">
   <el-step title="選擇日期"></el-step>
@@ -11,39 +11,48 @@
     <span class="demonstration"></span>
     <el-date-picker
       v-model="date"
+      value-format="yyyy-MM-dd"
       type="daterange"
       range-separator="至"
       start-placeholder="開始日期"
-      end-placeholder="结束日期">
+      end-placeholder="结束日期"
+      :picker-options="pickerOptions">
     </el-date-picker>
   </div>
   <!-- 選擇營地 -->
   <div v-show="tentshow">
   <img src="../assets/map.png">
-  <el-table    
-    ref="multipleTable"
-    :data="tableData3"
+  <el-table
+    :data="tentlist"
     tooltip-effect="dark"
-    style="width: 100%"
-    @selection-change="handleSelectionChange">
-    <el-table-column
-      type="selection"
-      width="55">
-    </el-table-column>
+    style="width: 80%; margin: auto;">
     <el-table-column
       label="圖片"
       width="120">
-      <template slot-scope="scope">{{ scope.row.date }}</template>
+      <template slot-scope="img">
+      <img :src="img.row.img">
+      </template>  
     </el-table-column>
     <el-table-column
-      prop="name"
+      prop="area"
       label="營區"
-      width="240">
+      width="120">
     </el-table-column>
     <el-table-column
       prop="quality"
       label="數量"
-      width="120">
+      width="150">
+      <template slot-scope="abc">        
+        <el-input-number 
+        v-model="abc.row.quality" 
+        size="small" 
+        @change="handleChange(abc.row)" 
+        :min="0" 
+        :max="abc.row.maxquality">        
+        </el-input-number>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <span style="color: red">剩餘數量{{ abc.row.maxquality }}</span>
+      </template>
     </el-table-column>
     <el-table-column
       prop="price"
@@ -51,11 +60,17 @@
       width="120">
     </el-table-column>
     <el-table-column
-      prop="address"
-      label="地址"
+      prop="remark"
+      label="備註"
       show-overflow-tooltip>
     </el-table-column>
+     <el-table-column
+      prop="totalprice"
+      label="小計(元)"
+      width="120">
+    </el-table-column>
   </el-table>
+    <h3>總計: {{ sumprice }}元</h3>
   </div>
 <!-- 填寫表單 -->
 <el-form ref="form" :model="form" label-width="80px" class="form2" v-show="formshow">
@@ -80,8 +95,7 @@
 </el-form>
   <el-button v-if="active < 2" style="margin-top: 100px;" @click="next">下一步</el-button>
   <el-button v-if="active == 2" style="margin-top: 100px;" @click="onsubmit">送出</el-button>
-  <el-button style="margin-top: 100px;" @click="previous">返回</el-button>
-  <el-button v-if="active == 1" @click="toggleSelection()">取消选择</el-button>
+  <el-button v-if="active > 0" style="margin-top: 100px;" @click="previous">返回</el-button>
   </div>
 </template>
 
@@ -90,21 +104,23 @@ export default {
   data() {
     return {
       active: 0,
+      pickerOptions: {
+        disabledDate(time) {
+          let curDate = new Date().getTime();
+          let three = 90 * 24 * 3600 * 1000;
+          let threeMonths = curDate + three;
+          return time.getTime() < Date.now() || time.getTime() > threeMonths;
+        }
+      },
+      active: 0,
       date: "",
+      sumprice: 0,
       dateshow: true,
       tentshow: false,
       formshow: false,
-      tableData3: [
-        {
-          img: "2016-05-03",
-          name: "景觀草皮區",
-          quality: "1",
-          price: "3000",
-          address: "上海市普陀区金沙江路 1518 弄"
-        }
-      ],
-      multipleSelection: [],
+      tentlist: [],
       form: {
+        area: [],
         name: "",
         sex: "",
         mail: "",
@@ -113,35 +129,44 @@ export default {
       }
     };
   },
-  // mounted() {  印出AXIOS
-  //   this.$http.get();
-  //   console.log();
-  // },
+  created: function() {
+    var self = this;
+    this.$http
+      .get("sign")
+      .then(function(response) {
+        self.tentlist = response.data;
+      })
+      .catch(function(error) {
+        console.log(error);
+      });
+  },
   methods: {
     next() {
-      console.log(this.active);
-      if (this.active === 0) {
+      if (this.date == "") {
+        alert("日期不得為空");
+      } else {
+        this.active++;
+      }
+      if (this.active === 1) {
         this.dateshow = false;
-        this.tentshow = false;
+        this.formshow = false;
         this.tentshow = true;
       }
-
-      if (this.active === 1) {
+      if (this.active === 2) {
         this.formshow = true;
         this.tentshow = false;
         this.dateshow = false;
       }
-      if (this.active++ > 1) {
+      if (this.active > 2) {
         this.active = 2;
       }
     },
     previous() {
-      console.log(this.active);
       if (this.active-- < 1) this.active = 0;
       if (this.active === 0) {
         this.dateshow = true;
         this.tentshow = false;
-        this.tentshow = false;
+        this.formshow = false;
       }
       if (this.active === 1) {
         this.dateshow = false;
@@ -154,29 +179,32 @@ export default {
         this.dateshow = false;
       }
     },
-    toggleSelection(rows) {
-      this.$refs.multipleTable.clearSelection();
-    },
-    handleSelectionChange(val) {
-      this.multipleSelection = val;
-    },
     onsubmit() {
-      this.$http({
-        method: "post",
-        url: "/Luin/Signup",
-        data: {
-          name: this.userpwd,
-          email: this.newpwd,
-          telephone: this.telephone,
-          cellphone: this.cellphone
+      this.tentlist.forEach(item => {
+        if (item.quality > 0) {
+          this.form.area.push(item);
+          item.reservedate = this.date;
         }
-      })
-        .then(function(response) {
-          console.log(response);
+      });
+      this.$http
+        .post("sign", this.form, this.date)
+        .then(response => {
+          alert("送出成功");
+          this.$router.push({ path: "/" });
         })
-        .catch(function(error) {
-          console.log(error);
+        .catch(error => {
+          console.log(error.response);
         });
+    },
+    handleChange(row) {
+      this.sumprice = 0;
+      this.tentlist = this.tentlist.map(item => {
+        if (item.id == row.id) {
+          item.totalprice = item.quality * item.price;
+        }
+        this.sumprice += item.totalprice;
+        return item;
+      });
     }
   }
 };
