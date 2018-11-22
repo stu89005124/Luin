@@ -14,11 +14,6 @@ class SignupController extends Controller
     public function index(Request $data)
     {
         $reserve = $data->area;
-        // foreach ($reserve as $order){
-        //     print_r($order);         
-        // }
-        // exit;
-
         $oMembertype = new Luin();
         $oMembertype->sex = $data->sex;
         $oMembertype->name = $data->name;
@@ -26,12 +21,12 @@ class SignupController extends Controller
         $oMembertype->telephone = $data->telephone;
         $oMembertype->cellphone = $data->cellphone;
         $oMembertype->save();
-        
+        $insertedId = $oMembertype->id;
         
         foreach ($reserve as $order) {
             $oReservetype = new Reserve();
-            $oReservetype->tentid = 1;
-            $oReservetype->memberid = 1;
+            $oReservetype->memberid = $insertedId;
+            $oReservetype->tentid = $order['id'];
             $oReservetype->quality = $order['quality'];
             $oReservetype->price = $order['totalprice']; 
             $oReservetype->startdate = $order['reservedate'][0];

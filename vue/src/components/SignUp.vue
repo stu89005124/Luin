@@ -27,6 +27,11 @@
     tooltip-effect="dark"
     style="width: 80%; margin: auto;">
     <el-table-column
+      prop="id"
+      label="#"
+      width="120">
+    </el-table-column>
+    <el-table-column
       label="圖片"
       width="120">
       <template slot-scope="img">
@@ -180,21 +185,37 @@ export default {
       }
     },
     onsubmit() {
+      var noticemessage = true;
+      var someonezero = false;
       this.tentlist.forEach(item => {
         if (item.quality > 0) {
           this.form.area.push(item);
           item.reservedate = this.date;
+          noticemessage = false;
+          someonezero = true;
+        } else if (someonezero == true) {
+          return;
+        } else {
+          this.active = 1;
+          this.dateshow = false;
+          this.formshow = false;
+          this.tentshow = true;
+          return;
         }
       });
-      this.$http
-        .post("sign", this.form, this.date)
-        .then(response => {
-          alert("送出成功");
-          this.$router.push({ path: "/" });
-        })
-        .catch(error => {
-          console.log(error.response);
-        });
+      if (noticemessage) {
+        alert("請至少選擇一個帳篷");
+      } else {
+        this.$http
+          .post("sign", this.form, this.date)
+          .then(response => {
+            alert("送出成功");
+            this.$router.push({ path: "/" });
+          })
+          .catch(error => {
+            console.log(error.response);
+          });
+      }
     },
     handleChange(row) {
       this.sumprice = 0;
